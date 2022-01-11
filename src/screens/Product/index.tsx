@@ -39,11 +39,13 @@ type PizzaResponse = ProductProps & {
 export function Product() {
   const [photoPath, setPhotoPath] = useState('');
   const [image, setImage] = useState("");
+  const [newImage, setNewImage] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [priceSizeP, setPriceSizeP] = useState("");
   const [priceSizeM, setPriceSizeM] = useState("");
   const [priceSizeG, setPriceSizeG] = useState("");
+  const [descriptionLength, setDescriptionLength] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
 
   const navigation = useNavigation();
@@ -59,8 +61,17 @@ export function Product() {
         aspect: [4, 4],
       });
 
+      if (id && !result.cancelled) {
+        setNewImage(result.uri);
+      }
+
       if (!result.cancelled) {
-        setImage(result.uri);
+
+        if (!id) {
+          setImage(result.uri);
+        } else {
+          setNewImage(result.uri);
+        }
       }
     }
   }
@@ -112,21 +123,97 @@ export function Product() {
 
   }
 
+  async function handleUpdate() {
+    if (!name.trim()) {
+      Alert.alert('Cadastro', 'Informe o nome da pizza.');
+    }
+
+    if (!description.trim()) {
+      Alert.alert('Cadastro', 'Informe o descrição da pizza.');
+    }
+
+    if (!image) {
+      Alert.alert('Cadastro', 'Seleciona a imagem da pizza.');
+    }
+
+    if (!priceSizeP || !priceSizeM || !priceSizeG) {
+      Alert.alert('Cadastro', 'Informe o preço de todos os tamanhos da pizza.');
+    }
+
+    setIsLoading(true);
+
+    let data: any = {
+      name,
+      name_insensitive: name.toLocaleLowerCase().trim(),
+      description,
+      prices_sizes: {
+        p: priceSizeP,
+        m: priceSizeM,
+        g: priceSizeG
+      },
+    }
+
+    if (newImage !== '') {
+      await deletePhoto();
+
+      const fileName = new Date().getTime();
+      const reference = storage().ref(`/pizzas/${fileName}.png`)
+
+      await reference.putFile(newImage);
+      const photo_url = await reference.getDownloadURL();
+
+      data = {
+        ...data,
+        photo_url,
+        photo_path: reference.fullPath
+      }
+    }
+
+    firestore()
+      .collection('pizzas')
+      .doc(id)
+      .update(data)
+      .then(() => navigation.navigate('home'))
+      .catch(() => {
+        setIsLoading(false);
+        Alert.alert('Cadastro', 'Não foi possível atualizar o cadastro da pizza.');
+      })
+  }
+
   function handleGoBack() {
     navigation.goBack();
   }
 
   function handleDelete() {
-    firestore()
-      .collection('pizzas')
-      .doc(id)
-      .delete()
-      .then(() => {
-        storage()
-          .ref(photoPath)
-          .delete()
-          .then(() => navigation.navigate('home'))
-      });
+    Alert.alert('Cadastro', `Deseja excluir a pizza ${name}?`, [
+      {
+        text: "Não",
+        style: "cancel",
+      },
+      {
+        text: "Sim",
+        onPress: () => {
+          firestore()
+            .collection('pizzas')
+            .doc(id)
+            .delete()
+            .then(() => {
+              storage()
+                .ref(photoPath)
+                .delete()
+                .then(() => navigation.navigate('home'))
+            });
+        },
+      },
+    ])
+
+
+  }
+
+  async function deletePhoto() {
+    storage()
+    .ref(photoPath)
+    .delete();
   }
 
   useEffect(() => {
@@ -145,6 +232,8 @@ export function Product() {
           setPriceSizeP(product.prices_sizes.p);
           setPriceSizeM(product.prices_sizes.m);
           setPriceSizeG(product.prices_sizes.g);
+
+          setDescriptionLength(String(product.description.length))
         })
     }
 
@@ -166,14 +255,15 @@ export function Product() {
         </Header>
 
         <Upload>
-          <Photo uri={image} />
-          {
-            !id &&
-            <PickImageButton
-              title="Carregar"
-              type="secondary"
-              onPress={handlePickerImage}
-            />}
+          <Photo uri={newImage === '' ? image : newImage} />
+          <PickImageButton
+            title={id ? "Atualizar foto" : "Carregar"}
+            type="secondary"
+            onPress={() => {
+              handlePickerImage();
+
+            }}
+          />
         </Upload>
 
         <Form>
@@ -185,14 +275,17 @@ export function Product() {
           <InputGroup>
             <InputGroupHeader>
               <Label>Descrição</Label>
-              <MaxCharacteres>0 de 60 caracteres</MaxCharacteres>
+              <MaxCharacteres>{descriptionLength} de 60 caracteres</MaxCharacteres>
             </InputGroupHeader>
 
             <Input
               multiline
               maxLength={60}
               style={{ height: 80 }}
-              onChangeText={setDescription}
+              onChangeText={(text) => {
+                setDescription(text)
+                setDescriptionLength(String(text.length))
+              }}
               value={description}
             />
           </InputGroup>
@@ -206,12 +299,17 @@ export function Product() {
           </InputGroup>
 
           {
-            !id &&
-            <Button
-              title="Cadastrar pizza"
-              isLoading={isLoading}
-              onPress={handleAdd}
-            />}
+            !id ?
+              (<Button
+                title="Cadastrar pizza"
+                isLoading={isLoading}
+                onPress={handleAdd}
+              />) :
+              (<Button
+                title="Atualizar cadastro"
+                isLoading={isLoading}
+                onPress={handleUpdate}
+              />)}
 
         </Form>
       </ScrollView>

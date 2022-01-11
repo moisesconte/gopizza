@@ -20,6 +20,7 @@ export const Container = styled(RectButton) <ContainerProps>`
 
 export const Title = styled.Text`
     font-size: 14px;
+    text-align: center;
 
     ${({ theme }) => css`
         color: ${theme.COLORS.TITLE};

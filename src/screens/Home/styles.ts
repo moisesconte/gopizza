@@ -26,7 +26,7 @@ export const Greeting = styled.View`
 export const GreetingEmoji = styled.Image`
 	height: 32px;
 	width: 32px;
-	margin-right: 12;
+	margin-right: 12px;
 `;
 
 export const GreetingText = styled.Text`

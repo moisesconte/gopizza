@@ -59,7 +59,7 @@ export function Orders() {
           <OrderCard
             index={index}
             data={item}
-            disabled={item.status === "Entregue"}
+            disabled={item.status === "Entregue" || item.status === "Preparando"}
             onPress={() => handlePizzaDelivered(item.id)}
           />
         )}

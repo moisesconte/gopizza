@@ -140,11 +140,11 @@ export function Order() {
 
           <Price>Valor de R$ {amount}</Price>
 
-          <Button
-            title="Confirmar pedido"
-            onPress={handleOrder}
-            isLoading={sendingOrder}
-          />
+            <Button
+              title="Confirmar pedido"
+              onPress={handleOrder}
+              isLoading={sendingOrder}
+            />
         </Form>
       </ContentScroll>
     </Container>
